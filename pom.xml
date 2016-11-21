@@ -1,0 +1,68 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.almende.sensordb</groupId>
+	<artifactId>agentdb</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>SensorDB Agents</name>
+	<description>Sensor db agents</description>
+
+	<properties>
+		<maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
+		<maven.shade.version>2.4.3</maven.shade.version>
+		<eve.version>3.2.0-SNAPSHOT</eve.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.almende.eve</groupId>
+			<artifactId>eve-bundle-full-embed</artifactId>
+			<version>${eve.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- Make compiler UTF-8/ISO-8859-1 aware, set JVM to 1.6+ -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven-compiler-plugin.version}</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<encoding>UTF-8</encoding>
+					<compilerArguments>
+						<verbose />
+					</compilerArguments>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>${maven.shade.version}</version>
+				<configuration>
+					<transformers>
+						<transformer
+							implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+							<!-- vvv CHANGE THIS TO YOU OWN MAIN-METHOD CLASS! vvv -->
+							<mainClass>com.almende.eve.deploy.Boot</mainClass>
+							<!-- ^^^ CHANGE THIS TO YOU OWN MAIN-METHOD CLASS! ^^^ -->
+						</transformer>
+					</transformers>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
