@@ -13,6 +13,7 @@ import redis.clients.jedis.Tuple;
 
 import com.almende.eve.agent.Agent;
 import com.almende.eve.protocol.jsonrpc.annotation.Name;
+import com.almende.eve.protocol.jsonrpc.annotation.Optional;
 import com.almende.eve.protocol.jsonrpc.annotation.Sender;
 import com.almende.sensordb.storage.RedisStore;
 import com.almende.util.TypeUtil;
@@ -65,14 +66,18 @@ public class SensorAgent extends Agent {
 	 *            the start
 	 * @param end
 	 *            the end
+	 * @param inclPrev
+	 *            the incl prev
 	 * @param sender
 	 *            the sender
 	 * @return the sensor values
 	 */
 	public ArrayNode getSensorValues(@Name("sensorId") String sensorId,
-			@Name("start") long start, @Name("end") long end, @Sender URI sender) {
+			@Name("start") double start, @Name("end") double end,
+			@Name("includePrevious") @Optional Boolean inclPrev,
+			@Sender URI sender) {
 		final Set<Tuple> res = sensorStore.getValues(getId() + ":sensor:"
-				+ sensorId, start, end);
+				+ sensorId, start, end, inclPrev);
 		final ArrayNode result = JOM.createArrayNode();
 		for (Tuple tuple : res) {
 			final ObjectNode node = JOM.createObjectNode();
@@ -97,5 +102,24 @@ public class SensorAgent extends Agent {
 			sensorIds = new ArrayList<String>();
 		}
 		return sensorIds;
+	}
+	
+	/**
+	 * Gets the graph json.
+	 *
+	 * @param sender
+	 *            the sender
+	 * @return the graph json
+	 */
+	public ObjectNode getGraphData(@Sender URI sender){
+		final ObjectNode result = JOM.createObjectNode();
+		for (String sensor : getSensorIds(sender)){
+			final ObjectNode wrapper = JOM.createObjectNode();
+			wrapper.set("values", getSensorValues(sensor,0,Double.POSITIVE_INFINITY,false,sender));
+			wrapper.put("label", sensor);
+			wrapper.put("name", getId());
+			result.set(sensor, wrapper);
+		}
+		return result;
 	}
 }

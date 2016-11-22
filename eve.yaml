@@ -1,13 +1,13 @@
 
 templates:
    defaultAgent:
-      dbid: 9
+      dbid: 10
       pool: localhost
       scheduler:
         builder: com.almende.eve.scheduling.SimpleSchedulerBuilder
       state:
         builder: com.almende.eve.state.redis.RedisStateBuilder
-        dbId: 9
+        dbId: 10
         host: localhost
       transports:
       - builder: com.almende.eve.transport.http.HttpTransportBuilder
@@ -18,6 +18,7 @@ templates:
         doAuthentication: false
         jetty:
            port: 8888
+           cors: true
 
 agents:
 -  id: Pietje
@@ -26,11 +27,28 @@ agents:
 -  id: Jantje
    class: com.almende.sensordb.agent.PersonalAgent
    extends: templates/defaultAgent
--  id: heartBeat170
+-  id: Ludo
+   class: com.almende.sensordb.agent.PersonalAgent
+   extends: templates/defaultAgent
+-  id: Chris
+   class: com.almende.sensordb.agent.PersonalAgent
+   extends: templates/defaultAgent
+-  id: Claudia
+   class: com.almende.sensordb.agent.PersonalAgent
+   extends: templates/defaultAgent
+-  id: Sylvia
+   class: com.almende.sensordb.agent.PersonalAgent
+   extends: templates/defaultAgent
+-  id: Hartsnelheid1
    class: com.almende.sensordb.agent.GroupAgent
    extends: templates/defaultAgent
--  id: bloodPressure120_70
+-  id: Hartsnelheid2
    class: com.almende.sensordb.agent.GroupAgent
    extends: templates/defaultAgent
-
+-  id: bloeddruk1
+   class: com.almende.sensordb.agent.GroupAgent
+   extends: templates/defaultAgent
+-  id: bloeddruk2
+   class: com.almende.sensordb.agent.GroupAgent
+   extends: templates/defaultAgent
 

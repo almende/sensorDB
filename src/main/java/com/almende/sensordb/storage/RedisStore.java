@@ -4,6 +4,7 @@
  */
 package com.almende.sensordb.storage;
 
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,12 +54,12 @@ public class RedisStore {
 	 * @param value
 	 *            the value
 	 */
-	public void storeSensorValue(String sensorId, String value, double timestamp){
+	public void storeSensorValue(String sensorId, String value, double timestamp) {
 		try (final Jedis instance = getInstance()) {
 			instance.zadd(sensorId, timestamp, value);
 		}
 	}
-	
+
 	/**
 	 * Store sensor values.
 	 *
@@ -67,12 +68,12 @@ public class RedisStore {
 	 * @param values
 	 *            the values, Map<Value, timestamp>
 	 */
-	public void storeSensorValues(String sensorId, Map<String,Double> values){
+	public void storeSensorValues(String sensorId, Map<String, Double> values) {
 		try (final Jedis instance = getInstance()) {
-			instance.zadd(sensorId,values);
+			instance.zadd(sensorId, values);
 		}
 	}
-	
+
 	/**
 	 * Gets the values.
 	 *
@@ -82,9 +83,10 @@ public class RedisStore {
 	 *            the timestamp
 	 * @return the values
 	 */
-	public Set<Tuple> getValues(String sensorId, double timestamp){
+	public Set<Tuple> getValues(String sensorId, double timestamp) {
 		try (final Jedis instance = getInstance()) {
-			return instance.zrangeByScoreWithScores(sensorId, timestamp, timestamp);
+			return instance.zrangeByScoreWithScores(sensorId, timestamp,
+					timestamp);
 		}
 	}
 
@@ -97,16 +99,27 @@ public class RedisStore {
 	 *            the from timestamp (included)
 	 * @param to
 	 *            the to timestamp (included!)
+	 * @param includePrevious
+	 *            the include previous
 	 * @return the values
 	 */
-	public Set<Tuple> getValues(String sensorId, double from, double to){
+	public Set<Tuple> getValues(String sensorId, double from, double to,
+			Boolean includePrevious) {
 		try (final Jedis instance = getInstance()) {
-			return instance.zrangeByScoreWithScores(sensorId, from, to);
+			// First reverse with limit 1, add to set of other values:
+			Set<Tuple> result = new LinkedHashSet<Tuple>();
+			if (includePrevious != null && includePrevious) {
+				result.addAll(instance.zrevrangeByScoreWithScores(sensorId,
+						from, 0, 0, 1));
+			}
+			result.addAll(instance.zrangeByScoreWithScores(sensorId, from, to));
+			return result;
 		}
 	}
-	
-	
-	//TODO: Introduce indexed sensors (with some field that is indexed in separate ordered set)
-	//TODO: Introduce geo-location indexes (Support in Redis 3.2.X, Geohash as mechanism, check for Java implementations)
-	
+
+	// TODO: Introduce indexed sensors (with some field that is indexed in
+	// separate ordered set)
+	// TODO: Introduce geo-location indexes (Support in Redis 3.2.X, Geohash as
+	// mechanism, check for Java implementations)
+
 }

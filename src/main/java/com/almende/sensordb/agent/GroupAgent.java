@@ -71,10 +71,54 @@ public class GroupAgent extends SensorAgent {
 	 */
 	public void onReady() {
 		super.onReady();
+	}
+
+	/**
+	 * Schedule aggregation.
+	 */
+	public void scheduleAggregation() {
 		final Params params = new Params();
-		params.add("sensorId", "HeartRate");
+		params.add("sensorId", "atest");
 		params.add("aggregator", "average");
-		this.scheduleInterval("updateAggregatedData", params, 60000);
+		this.scheduleInterval("updateAggregatedDataShort", params, 60000);
+	}
+
+	/**
+	 * Update aggregated data short.
+	 *
+	 * @param sensorId
+	 *            the sensor id
+	 * @param aggregator
+	 *            the aggregator
+	 */
+	public void updateAggregatedDataShort(@Name("sensorId") String sensorId,
+			@Name("aggregator") String aggregator) {
+		updateAggregatedData(sensorId, aggregator, getScheduler().nowDateTime()
+				.minusMinutes(interval).getMillis(), getScheduler().now());
+	}
+
+	/**
+	 * Update aggregated data split in parts
+	 *
+	 * @param sensorId
+	 *            the sensor id
+	 * @param aggregator
+	 *            the aggregator
+	 * @param start
+	 *            the start
+	 * @param end
+	 *            the end
+	 * @param parts
+	 *            the parts
+	 */
+	public void updateAggregatedDataSplit(@Name("sensorId") String sensorId,
+			@Name("aggregator") String aggregator, @Name("start") double start,
+			@Name("end") double end, @Name("parts") double parts) {
+		final double inc = (end - start) / parts;
+		for (int i = 0; i < parts; i++) {
+			updateAggregatedData(sensorId, aggregator, start + (i * inc), start
+					+ (i * inc) + inc);
+		}
 	}
 
 	/**
@@ -84,16 +128,22 @@ public class GroupAgent extends SensorAgent {
 	 *            the sensor id
 	 * @param aggregator
 	 *            the aggregator
+	 * @param start
+	 *            the start
+	 * @param end
+	 *            the end
 	 */
 	public void updateAggregatedData(@Name("sensorId") String sensorId,
-			@Name("aggregator") String aggregator) {
+			@Name("aggregator") String aggregator, @Name("start") double start,
+			@Name("end") double end) {
 		// Collect data from members for timeslot
 		// TODO: Make Async
 		List<ObjectNode> data = new ArrayList<ObjectNode>();
 		final Params params = new Params();
 		params.add("sensorId", sensorId);
-		params.add("start", getScheduler().nowDateTime().minusMinutes(interval));
-		params.add("end", getScheduler().now());
+		params.add("start", start);
+		params.add("end", end);
+		params.add("includePrevious", true);
 
 		for (String member : getMembers()) {
 			final URI mem = URIUtil.create(member);

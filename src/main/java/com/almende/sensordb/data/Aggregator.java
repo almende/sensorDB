@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.almende.eve.protocol.jsonrpc.formats.Params;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -74,21 +75,33 @@ class Avarage extends Aggregator {
 		super("Avarage");
 	}
 
-	public double getAverage(ArrayNode values,long start,long end){
+	public double getAverage(ArrayNode values, long start, long end) {
 		double result = 0.0;
-		long prev=  start;
-		
-		
-		return result;
+		long prev = start;
+		double val = 0.0;
+		for (JsonNode item : values) {
+			result += (val * (item.get("timestamp").asLong() - prev));
+			if (item.get("value") != null) {
+				val = item.get("value").asDouble();
+				prev = item.get("timestamp").asLong();
+				if (prev < start) {
+					prev = start;
+				}
+			}
+		}
+		result += (val * (end - prev));
+		return result / (end - start);
 	}
+
 	public String aggregate(List<ObjectNode> data, Params params) {
-		String result="";
+		String result = "";
 		if (data.size() > 0) {
 			double total = 0;
 			for (ObjectNode item : data) {
 				ArrayNode values = (ArrayNode) item.get("data");
 				//
-				total += getAverage(values,params.get("start").asLong(),params.get("end").asLong());
+				total += getAverage(values, params.get("start").asLong(),
+						params.get("end").asLong());
 			}
 			result = new Double(total / data.size()).toString();
 		}
