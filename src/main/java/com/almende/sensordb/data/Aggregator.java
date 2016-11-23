@@ -5,13 +5,11 @@
 package com.almende.sensordb.data;
 
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 
-import com.almende.eve.protocol.jsonrpc.formats.Params;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * The Class Aggregator.
@@ -19,7 +17,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class Aggregator {
 	static Map<String, Aggregator>	aggregators	= new HashMap<String, Aggregator>();
 	static {
-		aggregators.put("average", new Avarage());
+		aggregators.put("average", new Average());
 	}
 
 	/**
@@ -50,12 +48,29 @@ public class Aggregator {
 	 *
 	 * @param data
 	 *            the data
-	 * @param params
-	 *            the params
+	 * @param start
+	 *            the start
+	 * @param end
+	 *            the end
 	 * @return the object node
 	 */
-	public String aggregate(List<ObjectNode> data, Params params) {
-		return "";
+	public Double aggregate(ArrayNode data, double start, double end) {
+		return Double.NaN;
+	}
+
+	/**
+	 * Aggregate.
+	 *
+	 * @param data
+	 *            the data
+	 * @param start
+	 *            the start
+	 * @param end
+	 *            the end
+	 * @return the object node
+	 */
+	public Double aggregate2(ArrayNode data, double start, double end) {
+		return Double.NaN;
 	}
 
 	/**
@@ -69,15 +84,16 @@ public class Aggregator {
 
 }
 
-class Avarage extends Aggregator {
+class Average extends Aggregator {
 
-	public Avarage() {
-		super("Avarage");
+	public Average() {
+		super("Average");
 	}
 
-	public double getAverage(ArrayNode values, long start, long end) {
+	@Override
+	public Double aggregate(ArrayNode values, double start, double end) {
 		double result = 0.0;
-		long prev = start;
+		double prev = start;
 		double val = 0.0;
 		for (JsonNode item : values) {
 			result += (val * (item.get("timestamp").asLong() - prev));
@@ -93,17 +109,18 @@ class Avarage extends Aggregator {
 		return result / (end - start);
 	}
 
-	public String aggregate(List<ObjectNode> data, Params params) {
-		String result = "";
-		if (data.size() > 0) {
+	@Override
+	public Double aggregate2(ArrayNode values, double start, double end) {
+		Double result = Double.NaN;
+		if (values.size() > 0) {
 			double total = 0;
-			for (ObjectNode item : data) {
-				ArrayNode values = (ArrayNode) item.get("data");
-				//
-				total += getAverage(values, params.get("start").asLong(),
-						params.get("end").asLong());
+			Iterator<JsonNode> iter = values.elements();
+			while (iter.hasNext()) {
+				JsonNode item = iter.next();
+				ArrayNode data = (ArrayNode) item.get("data");
+				total += aggregate(data, start, end);
 			}
-			result = new Double(total / data.size()).toString();
+			result = new Double(total / values.size());
 		}
 		return result;
 	}

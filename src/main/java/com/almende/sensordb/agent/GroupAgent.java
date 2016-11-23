@@ -98,7 +98,7 @@ public class GroupAgent extends SensorAgent {
 	}
 
 	/**
-	 * Update aggregated data split in parts
+	 * Update aggregated data split in parts.
 	 *
 	 * @param sensorId
 	 *            the sensor id
@@ -108,14 +108,14 @@ public class GroupAgent extends SensorAgent {
 	 *            the start
 	 * @param end
 	 *            the end
-	 * @param parts
-	 *            the parts
+	 * @param steps
+	 *            the steps
 	 */
 	public void updateAggregatedDataSplit(@Name("sensorId") String sensorId,
 			@Name("aggregator") String aggregator, @Name("start") double start,
-			@Name("end") double end, @Name("parts") double parts) {
-		final double inc = (end - start) / parts;
-		for (int i = 0; i < parts; i++) {
+			@Name("end") double end, @Name("steps") double steps) {
+		final double inc = (end - start) / steps;
+		for (int i = 0; i < steps; i++) {
 			updateAggregatedData(sensorId, aggregator, start + (i * inc), start
 					+ (i * inc) + inc);
 		}
@@ -138,7 +138,7 @@ public class GroupAgent extends SensorAgent {
 			@Name("end") double end) {
 		// Collect data from members for timeslot
 		// TODO: Make Async
-		List<ObjectNode> data = new ArrayList<ObjectNode>();
+		ArrayNode data = JOM.createArrayNode();
 		final Params params = new Params();
 		params.add("sensorId", sensorId);
 		params.add("start", start);
@@ -152,7 +152,7 @@ public class GroupAgent extends SensorAgent {
 				res = getCaller().callSync(mem, "getSensorValues", params,
 						ArrayNode.class);
 				final ObjectNode result = JOM.createObjectNode();
-				result.set("data", res);
+				result.set("values", res);
 				result.put("sensorId", sensorId);
 				result.put("user", member);
 				data.add(result);
@@ -162,8 +162,8 @@ public class GroupAgent extends SensorAgent {
 		}
 		// Run aggregator with data
 		setSensorValue(sensorId, params.get("end").asLong(),
-				Aggregator.get(aggregator).aggregate(data, params),
-				this.getUrlByScheme("local"));
+				Aggregator.get(aggregator).aggregate2(data, start, end)
+						.toString(), this.getUrlByScheme("local"));
 	}
 
 	// Selection pattern

@@ -12,9 +12,13 @@ import java.util.Set;
 import redis.clients.jedis.Tuple;
 
 import com.almende.eve.agent.Agent;
+import com.almende.eve.protocol.jsonrpc.annotation.Access;
+import com.almende.eve.protocol.jsonrpc.annotation.AccessType;
 import com.almende.eve.protocol.jsonrpc.annotation.Name;
 import com.almende.eve.protocol.jsonrpc.annotation.Optional;
 import com.almende.eve.protocol.jsonrpc.annotation.Sender;
+import com.almende.eve.protocol.jsonrpc.formats.Params;
+import com.almende.sensordb.data.Aggregator;
 import com.almende.sensordb.storage.RedisStore;
 import com.almende.util.TypeUtil;
 import com.almende.util.jackson.JOM;
@@ -24,6 +28,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * The Class SensorAgent.
  */
+@Access(AccessType.PUBLIC)
 public class SensorAgent extends Agent {
 	private RedisStore	sensorStore	= null;
 
@@ -103,7 +108,7 @@ public class SensorAgent extends Agent {
 		}
 		return sensorIds;
 	}
-	
+
 	/**
 	 * Gets the graph json.
 	 *
@@ -111,15 +116,109 @@ public class SensorAgent extends Agent {
 	 *            the sender
 	 * @return the graph json
 	 */
-	public ObjectNode getGraphData(@Sender URI sender){
+	public ObjectNode getGraphData(@Sender URI sender) {
 		final ObjectNode result = JOM.createObjectNode();
-		for (String sensor : getSensorIds(sender)){
+		for (String sensor : getSensorIds(sender)) {
 			final ObjectNode wrapper = JOM.createObjectNode();
-			wrapper.set("values", getSensorValues(sensor,0,Double.POSITIVE_INFINITY,false,sender));
+			wrapper.set(
+					"values",
+					getSensorValues(sensor, 0, Double.POSITIVE_INFINITY, false,
+							sender));
 			wrapper.put("label", sensor);
 			wrapper.put("name", getId());
 			result.set(sensor, wrapper);
 		}
 		return result;
 	}
+
+	/**
+	 * Gets the pattern.
+	 *
+	 * @param sensorId
+	 *            the sensor id
+	 * @param aggregator
+	 *            the aggregator
+	 * @param start
+	 *            the start
+	 * @param end
+	 *            the end
+	 * @param steps
+	 *            the steps
+	 * @param sender
+	 *            the sender
+	 * @return the pattern
+	 */
+	// getHourly average
+	public ObjectNode getPattern(@Name("sensorId") String sensorId,
+			@Name("aggregator") String aggregator, @Name("start") double start,
+			@Name("end") double end, @Name("steps") double steps,
+			@Sender URI sender) {
+		ObjectNode result = JOM.createObjectNode();
+		result.put("sensorId", sensorId);
+		result.put("aggregator", aggregator);
+		result.put("start", start);
+		result.put("end", end);
+		result.put("steps", steps);
+
+		final ArrayNode pattern = JOM.createArrayNode();
+		final double inc = (end - start) / steps;
+		for (int i = 0; i < steps; i++) {
+			pattern.add(_getPattern(sensorId, aggregator, start + (i * inc),
+					start + (i * inc) + inc, sender));
+		}
+		result.set("pattern", pattern);
+		return result;
+	}
+
+	/**
+	 * Gets the pattern.
+	 *
+	 * @param sensorId
+	 *            the sensor id
+	 * @param aggregator
+	 *            the aggregator
+	 * @param start
+	 *            the start
+	 * @param end
+	 *            the end
+	 * @param sender
+	 *            the sender
+	 * @return the pattern
+	 */
+	private double _getPattern(String sensorId, String aggregator,
+			double start, double end, URI sender) {
+		final Params params = new Params();
+		params.put("start", start);
+		params.put("end", end);
+		return Aggregator.get(aggregator)
+				.aggregate(getSensorValues(sensorId, start, end, true, sender),
+						start, end);
+	}
+
+	/**
+	 * Distance.
+	 *
+	 * @param pattern
+	 *            the pattern
+	 * @param cutoff
+	 *            the cutoff
+	 * @param sender
+	 *            the sender
+	 * @return true, if successful
+	 */
+	public boolean closeBy(@Name("pattern") ObjectNode pattern,
+			@Name("cutoff") double cutoff, @Sender URI sender) {
+		ObjectNode myPattern = getPattern(pattern.get("sensorId").asText(),
+				pattern.get("aggregator").asText(), pattern.get("start")
+						.asDouble(), pattern.get("end").asDouble(), pattern
+						.get("steps").asDouble(), sender);
+		ArrayNode list = (ArrayNode)myPattern.get("pattern");
+		double total = 0.0;
+		for (int i=0; i<list.size(); i++){
+			total += Math.abs(list.get(i).asDouble()-pattern.get("pattern").get(i).asDouble());
+		}
+		return (total/list.size())<=cutoff;
+	}
+	// Compare own hourly average with provided example -> KPI
+
 }
